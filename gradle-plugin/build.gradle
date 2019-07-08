@@ -21,7 +21,7 @@ group = "com.lightbend.akka.grpc"
 // https://github.com/palantir/gradle-git-version/issues/97
 
 def tag = "git describe --tags".execute().text.substring(1).split("-g")[0].replace("\n", "")
-def finalVersion = (tag == versionDetails().lastTag.substring(1)) ? tag : tag.reverse().replaceFirst("-", "+").reverse() + "-" + versionDetails().gitHash.substring(0, 8)
+def finalVersion = "9.9.9-SNAPSHOT"
 
 version = finalVersion
 
@@ -59,7 +59,7 @@ dependencies {
     compile gradleApi()
 
     // to bring in protobuf dependency trasitively
-    implementation 'com.google.protobuf:protobuf-gradle-plugin:0.8.6'
+    implementation 'com.google.protobuf:protobuf-gradle-plugin:0.8.9'
 }
 
 repositories {

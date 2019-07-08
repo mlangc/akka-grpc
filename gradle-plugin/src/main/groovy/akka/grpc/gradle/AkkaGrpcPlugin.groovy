@@ -1,18 +1,22 @@
 package akka.grpc.gradle
 
+import org.apache.commons.lang.SystemUtils
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.DependencyResolutionListener
 import org.gradle.api.artifacts.ResolvableDependencies
+
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
 
     final String pluginVersion = AkkaGrpcPlugin.class.package.implementationVersion
 
-    final String protocVersion = "3.4.0"
-    final String grpcVersion = "1.20.0" // checked synced by GrpcVersionSyncCheckPlugin
+    final String protocVersion = "3.8.0"
+    final String grpcVersion = "1.22.0" // checked synced by GrpcVersionSyncCheckPlugin
 
     Project project
 
@@ -22,13 +26,24 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
         project.gradle.addListener(this)
 
         def extension = project.extensions.create('akkaGrpc', AkkaGrpcPluginExtension, project)
+        String assemblySuffix = SystemUtils.IS_OS_WINDOWS ? "bat" : "jar"
+
+        if (SystemUtils.IS_OS_WINDOWS) {
+            Configuration assembliesConfig = project.getConfigurations().create("codegen-assemblies");
+            assembliesConfig.setTransitive(false)
+            project.getDependencies().add(assembliesConfig.getName(), "com.lightbend.akka.grpc:akka-grpc-codegen_2.12:9.9.9-SNAPSHOT:assembly")
+            project.getDependencies().add(assembliesConfig.getName(), "com.lightbend.akka.grpc:akka-grpc-scalapb-protoc-plugin_2.12:9.9.9-SNAPSHOT:assembly")
+            for (File assembly : assembliesConfig.getFiles()) {
+                File batFile = new File(assembly.getParentFile(), assembly.getName().replace(".jar", ".bat"))
+                if (!batFile.exists())
+                    Files.copy(assembly.toPath(), batFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
 
         project.configure(project) {
             boolean isScala = "${extension.language}".toLowerCase() == "scala"
-            File logFile = File.createTempFile("akka-grpc-gradle", ".log")
-            logFile.deleteOnExit()
-
             apply plugin: 'com.google.protobuf'
+
             protobuf {
                 protoc {
                     // Get protobuf from maven central instead of
@@ -38,11 +53,11 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
 
                 plugins {
                     akkaGrpc {
-                        artifact = "com.lightbend.akka.grpc:akka-grpc-codegen_2.12:${pluginVersion}:assembly@jar"
+                        artifact = "com.lightbend.akka.grpc:akka-grpc-codegen_2.12:9.9.9-SNAPSHOT:assembly@$assemblySuffix"
                     }
                     if (isScala) {
                         scalapb {
-                            artifact = "com.lightbend.akka.grpc:akka-grpc-scalapb-protoc-plugin_2.12:${pluginVersion}:assembly@jar"
+                            artifact = "com.lightbend.akka.grpc:akka-grpc-scalapb-protoc-plugin_2.12:9.9.9-SNAPSHOT:assembly@$assemblySuffix"
                         }
                     }
                 }
@@ -85,7 +100,7 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
                                 option "server_power_apis=${extension.serverPowerApis}"
                                 option "use_play_actions=${extension.usePlayActions}"
                                 option "extra_generators=${extension.extraGenerators.join(';')}"
-                                option "logfile=${logFile.getAbsolutePath()}"
+                                //option "logfile=${logFile.getAbsolutePath()}"
                                 if (extension.generatePlay) {
                                     option "generate_play=true"
                                 }
@@ -103,7 +118,7 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
                 }
             }
 
-            println project.getTasks()
+            /*println project.getTasks()
             project.task("printProtocLogs") {
                 doLast {
                     Files.lines(logFile.toPath()).forEach { line ->
@@ -114,7 +129,7 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
                     }
                 }
             }
-            project.getTasks().getByName("compileJava").dependsOn("printProtocLogs")
+            project.getTasks().getByName("compileJava").dependsOn("printProtocLogs")*/
         }
     }
 
@@ -122,7 +137,7 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
     @Override
     void beforeResolve(ResolvableDependencies resolvableDependencies) {
         def compileDeps = project.getConfigurations().getByName("compile").getDependencies()
-        compileDeps.add(project.getDependencies().create("com.lightbend.akka.grpc:akka-grpc-runtime_2.12:${pluginVersion}"))
+        compileDeps.add(project.getDependencies().create("com.lightbend.akka.grpc:akka-grpc-runtime_2.12:9.9.9-SNAPSHOT"))
         // TODO #115 grpc-stub is only needed for the client. Can we use the 'suggestedDependencies' somehow?
         compileDeps.add(project.getDependencies().create("io.grpc:grpc-stub:${grpcVersion}"))
         project.gradle.removeListener(this)
@@ -142,7 +157,7 @@ class AkkaGrpcPluginExtension {
     boolean generatePlay = false
     boolean serverPowerApis = false
     boolean usePlayActions = false
-    List<String> extraGenerators = [ ]
+    List<String> extraGenerators = []
 
     AkkaGrpcPluginExtension(Project project) {
         if (project.plugins.hasPlugin("scala"))
