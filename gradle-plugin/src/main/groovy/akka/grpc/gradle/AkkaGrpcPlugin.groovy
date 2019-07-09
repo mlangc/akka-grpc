@@ -35,8 +35,7 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
             project.getDependencies().add(assembliesConfig.getName(), "com.lightbend.akka.grpc:akka-grpc-scalapb-protoc-plugin_2.12:9.9.9-SNAPSHOT:assembly")
             for (File assembly : assembliesConfig.getFiles()) {
                 File batFile = new File(assembly.getParentFile(), assembly.getName().replace(".jar", ".bat"))
-                if (!batFile.exists())
-                    Files.copy(assembly.toPath(), batFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                Files.copy(assembly.toPath(), batFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
             }
         }
 
