@@ -7,10 +7,6 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.DependencyResolutionListener
 import org.gradle.api.artifacts.ResolvableDependencies
 
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-
 class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
 
     final String pluginVersion = AkkaGrpcPlugin.class.package.implementationVersion
@@ -19,6 +15,39 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
     final String grpcVersion = "1.22.0" // checked synced by GrpcVersionSyncCheckPlugin
 
     Project project
+
+    private void skipTillFirstAtAndCopy(File src, File dst) {
+        FileInputStream fin = new FileInputStream(src)
+        try {
+            FileOutputStream fout = new FileOutputStream(dst, false)
+            try {
+                BufferedInputStream bin = new BufferedInputStream(fin)
+                BufferedOutputStream bout = new BufferedOutputStream(fout)
+
+                int lastRead = -1
+                boolean stop = false;
+                while (!stop) {
+                    lastRead = bin.read()
+                    stop = (lastRead == -1 || lastRead == '@')
+                }
+
+                if (lastRead != -1) {
+                    byte[] buffer = new byte[64]
+                    bout.write(lastRead)
+                    int bytesRead = -1;
+                    while ((bytesRead = bin.read(buffer)) != -1) {
+                        bout.write(buffer, 0, bytesRead)
+                    }
+                    
+                    bout.flush()
+                }
+            } finally {
+                fout.close()
+            }
+        } finally {
+            fin.close()
+        }
+    }
 
     @Override
     void apply(Project project) {
@@ -35,7 +64,7 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
             project.getDependencies().add(assembliesConfig.getName(), "com.lightbend.akka.grpc:akka-grpc-scalapb-protoc-plugin_2.12:9.9.9-SNAPSHOT:assembly")
             for (File assembly : assembliesConfig.getFiles()) {
                 File batFile = new File(assembly.getParentFile(), assembly.getName().replace(".jar", ".bat"))
-                Files.copy(assembly.toPath(), batFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                skipTillFirstAtAndCopy(assembly, batFile)
             }
         }
 
