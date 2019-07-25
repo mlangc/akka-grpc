@@ -47,14 +47,6 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
         Configuration assembliesConfig = project.getConfigurations().create("codegen-assemblies");
         assembliesConfig.setTransitive(false)
         
-        project.getDependencies().add(assembliesConfig.getName(), "com.lightbend.akka.grpc:akka-grpc-codegen_2.12:${pluginVersion}:assembly")
-        project.getDependencies().add(assembliesConfig.getName(), "com.lightbend.akka.grpc:akka-grpc-scalapb-protoc-plugin_2.12:${pluginVersion}:assembly")
-
-        if (SystemUtils.IS_OS_WINDOWS) {
-            project.getDependencies().add(assembliesConfig.getName(), "com.lightbend.akka.grpc:akka-grpc-codegen_2.12:${pluginVersion}:bat")
-            project.getDependencies().add(assembliesConfig.getName(), "com.lightbend.akka.grpc:akka-grpc-scalapb-protoc-plugin_2.12:${pluginVersion}:bat")
-        }
-
         project.configure(project) {
             boolean isScala = "${extension.language}".toLowerCase() == "scala"
             boolean isJava = "${extension.language}".toLowerCase() == "java"
