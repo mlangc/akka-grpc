@@ -7,7 +7,14 @@ scalaVersion := scala212
 
 val akkaGrpcRuntimeName = "akka-grpc-runtime"
 
-lazy val codegen = Project(id = "akka-grpc-codegen", base = file("codegen"))
+lazy val mkBatScriptTask = taskKey[File]("Create bat script")
+ThisBuild / mkBatScriptTask := {
+  LaunchScripts.mkBatScript()
+}
+
+
+val akkaGrpcCodegenId = "akka-grpc-codegen"
+lazy val codegen = Project(id = akkaGrpcCodegenId, base = file("codegen"))
   .enablePlugins(SbtTwirl, BuildInfoPlugin)
   .settings(Dependencies.codegen)
   .settings(Seq(
@@ -26,11 +33,13 @@ lazy val codegen = Project(id = "akka-grpc-codegen", base = file("codegen"))
         prependShellScript = Some(sbtassembly.AssemblyPlugin.defaultUniversalScript(shebang = true))),
     crossScalaVersions -= scala213))
   .settings(addArtifact(artifact in (Compile, assembly), assembly))
+  .settings(addArtifact(Artifact(akkaGrpcCodegenId, "bat", "bat", "bat"), mkBatScriptTask))
 
 lazy val runtime = Project(id = akkaGrpcRuntimeName, base = file("runtime")).settings(Dependencies.runtime)
 
 /** This could be an independent project - or does upstream provide this already? didn't find it.. */
-lazy val scalapbProtocPlugin = Project(id = "akka-grpc-scalapb-protoc-plugin", base = file("scalapb-protoc-plugin"))
+val akkaGrpcProtocPluginId = "akka-grpc-scalapb-protoc-plugin"
+lazy val scalapbProtocPlugin = Project(id = akkaGrpcProtocPluginId, base = file("scalapb-protoc-plugin"))
 /** TODO we only really need to depend on scalapb */
   .dependsOn(codegen)
   .settings(Seq(
@@ -43,6 +52,7 @@ lazy val scalapbProtocPlugin = Project(id = "akka-grpc-scalapb-protoc-plugin", b
         prependShellScript = Some(sbtassembly.AssemblyPlugin.defaultUniversalScript(shebang = true))),
     crossScalaVersions := Seq(scala212)))
   .settings(addArtifact(artifact in (Compile, assembly), assembly))
+  .settings(addArtifact(Artifact(akkaGrpcProtocPluginId, "bat", "bat", "bat"), mkBatScriptTask))
 
 lazy val mavenPlugin = Project(id = "akka-grpc-maven-plugin", base = file("maven-plugin"))
   .settings(Dependencies.mavenPlugin)
