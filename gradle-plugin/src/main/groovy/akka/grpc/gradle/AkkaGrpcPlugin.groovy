@@ -44,9 +44,6 @@ class AkkaGrpcPlugin implements Plugin<Project>, DependencyResolutionListener {
         String assemblySuffix = SystemUtils.IS_OS_WINDOWS ? "bat" : "jar"
         String assemblyClassifier = SystemUtils.IS_OS_WINDOWS ? "bat" : "assembly"
 
-        Configuration assembliesConfig = project.getConfigurations().create("codegen-assemblies");
-        assembliesConfig.setTransitive(false)
-        
         project.configure(project) {
             boolean isScala = "${extension.language}".toLowerCase() == "scala"
             boolean isJava = "${extension.language}".toLowerCase() == "java"

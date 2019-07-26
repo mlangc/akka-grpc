@@ -59,8 +59,6 @@ dependencies {
     compile gradleApi()
 
     implementation 'com.google.protobuf:protobuf-gradle-plugin:0.8.6'
-    implementation "com.lightbend.akka.grpc:akka-grpc-codegen_2.12:${finalVersion}:assembly"
-    implementation "com.lightbend.akka.grpc:akka-grpc-scalapb-protoc-plugin_2.12:${finalVersion}:assembly"
 }
 
 repositories {
